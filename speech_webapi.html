@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fast Voice Command Control</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        color: white;
+        text-align: center;
+        padding: 50px;
+    }
+    h1 {
+        font-size: 2.5em;
+        margin-bottom: 20px;
+    }
+    #startBtn {
+        background-color: #27ae60;
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.2em;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    #startBtn:hover {
+        background-color: #2ecc71;
+    }
+    #status {
+        margin-top: 30px;
+        font-size: 1.2em;
+    }
+    #commandOutput {
+        display: inline-block;
+        margin-top: 15px;
+        padding: 10px 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        font-size: 1.5em;
+        font-weight: bold;
+    }
+</style>
+</head>
+<body>
+
+<h1>🎤 Voice Command to ESP32</h1>
+<button id="startBtn">🎙️ ابدأ الاستماع</button>
+<p id="status">اضغط على الزر لبدء التعرف على الصوت...</p>
+<p><strong>آخر أمر:</strong> <span id="commandOutput">لا يوجد</span></p>
+
+<script>
+    const startBtn = document.getElementById('startBtn');
+    const status = document.getElementById('status');
+    const commandOutput = document.getElementById('commandOutput');
+
+    function sendCommand(cmd) {
+        fetch('save_command.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'command=' + encodeURIComponent(cmd)
+        })
+        .then(response => response.text())
+        .then(data => {
+            console.log("Server response:", data);
+        })
+        .catch(err => console.error(err));
+    }
+
+    let recognition;
+    if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onstart = () => {
+            status.textContent = "🎙️ جاري الاستماع...";
+            startBtn.style.backgroundColor = "#e67e22";
+        };
+
+        recognition.onresult = (event) => {
+            let transcript = event.results[event.resultIndex][0].transcript.trim();
+            status.textContent = "✅ تم التعرف: " + transcript;
+            commandOutput.textContent = transcript;
+            if (event.results[event.resultIndex].isFinal) {
+                sendCommand(transcript);
+            }
+        };
+
+        recognition.onerror = (event) => {
+            status.textContent = "❌ خطأ: " + event.error;
+            startBtn.style.backgroundColor = "#c0392b";
+        };
+
+        recognition.onend = () => {
+            status.textContent += " | 🎤 تم إنهاء الاستماع";
+            startBtn.style.backgroundColor = "#27ae60";
+        };
+
+        startBtn.addEventListener('click', () => {
+            recognition.start();
+        });
+    } else {
+        status.textContent = "⚠️ المتصفح لا يدعم التعرف على الصوت (جرب Google Chrome)";
+    }
+</script>
+
+</body>
+</html>
