@@ -136,6 +136,99 @@ Future Enhancements
 
     Support for multiple languages
 
+
+    Adding Brushless (BLDC) Motor Support
+Additional Requirements for Brushless Motor:
+
+    Additional Hardware Components:
+
+        Brushless (BLDC) motor with ESC (Electronic Speed Controller)
+
+        Suitable LiPo battery (e.g., 3S 11.1V)
+
+        ESC programmer (optional for fine-tuning settings)
+
+    Circuit Modifications:
+
+        Replace H-Bridge circuit with ESC
+
+        Connect PWM signal from ESP32 to ESC signal input
+
+        Ensure proper power supply (ESC typically handles motor power directly)
+
+        Add capacitor bank if using high-power motors
+
+    Code Modifications (VoiceRC.ino):
+
+cpp
+
+// Add these constants
+const int ESC_PWM_PIN = 13; // PWM pin connected to ESC
+const int MIN_PULSE = 1000; // Minimum throttle (stop)
+const int MAX_PULSE = 2000; // Maximum throttle
+
+// In setup():
+ledcSetup(0, 50, 16); // 50Hz PWM, 16-bit resolution
+ledcAttachPin(ESC_PWM_PIN, 0);
+ledcWrite(0, MIN_PULSE); // Initialize with motor stopped
+delay(5000); // ESC arming delay
+
+// Replace motor functions with:
+void forward() {
+  ledcWrite(0, 1500); // Medium speed forward
+  Serial.println("BLDC Moving Forward");
+}
+
+void backward() {
+  ledcWrite(0, 1300); // Medium speed reverse (if ESC supports)
+  Serial.println("BLDC Moving Backward");
+}
+
+void stopMotors() {
+  ledcWrite(0, MIN_PULSE);
+  Serial.println("BLDC Stopped");
+}
+
+    ESC Configuration:
+
+        Calibrate ESC throttle range
+
+        Set braking mode if needed
+
+        Configure low-voltage cutoff matching your battery
+
+        Enable/disable reverse rotation as required
+
+    Safety Considerations:
+
+        Always connect battery to ESC last
+
+        Keep hands clear during arming sequence
+
+        Use proper current-rated connectors
+
+        Monitor motor temperature during initial tests
+
+    Web Interface Changes:
+
+        No changes required to HTML/PHP files
+
+        Same voice commands will work ("forward", "backward", "stop")
+
+    Additional Commands (Optional):
+
+cpp
+
+// Add to loop() handling:
+else if (payload.equalsIgnoreCase("slow")) {
+  ledcWrite(0, 1200); // Slow speed
+}
+else if (payload.equalsIgnoreCase("fast")) {
+  ledcWrite(0, 1800); // Fast speed
+}
+
+Note: Some ESCs may require different signal values or calibration procedures. Always consult your specific ESC documentation before implementation.
+
 License
 
 This project is open-source and available for modification and distribution.
